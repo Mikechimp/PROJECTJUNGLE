@@ -1,6 +1,16 @@
 # PROJECTJUNGLE
 ReadMe for details. 
 
+FIRST BE AWARE 
+
+Misusing this tool in any way — including scanning, probing, or interacting with systems you do not have explicit written authorization to access — is a serious federal offense. Violations of the Computer Fraud and Abuse Act (CFAA) and related cybercrime laws are classified as felonies.
+
+This is not a gray area. Unauthorized use will be treated as criminal hacking. You are subject to investigation by the Federal Bureau of Investigation (FBI), U.S. Secret Service, and other federal agencies tasked with cybersecurity enforcement. These agencies do not issue warnings — they build cases.
+
+If you break the law using this tool, you risk immediate legal action, seizure of your devices, a permanent criminal record, and years in federal prison.
+
+There will be no excuses. You are solely responsible for your actions. Use this tool only in lawful, ethical, and authorized environments. Otherwise, expect consequences at the highest level.
+
   Project JUNGLE is a specialized tool developed to support ethical cybersecurity operations through automation, precision, and innovation. Its use is strictly limited to authorized personnel engaged in lawful security assessments, research, and training. Any deployment of this tool against systems without explicit, documented permission from the asset owner is a direct violation of this project’s intended purpose and will be treated as a serious offense. Unauthorized scanning, exploitation, or intrusion activities may constitute criminal acts under local, state, federal, and international law. In the United States, misuse of this tool may subject individuals to prosecution under the Computer Fraud and Abuse Act (CFAA), among other statutes, carrying severe penalties including substantial fines, civil liability, and imprisonment.
   In the United States, misuse of this tool may subject individuals to prosecution under the Computer Fraud and Abuse Act (CFAA, 18 U.S. Code § 1030), which can carry penalties of up to 10 years in prison for a first offense and up to 20 years for repeat offenses, along with civil damages exceeding $100,000 or more depending on the case. Additional federal or state charges may apply based on data accessed, systems affected, or damages caused.
 By accessing or using this software, you accept full responsibility for your actions and acknowledge the legal risks associated with unauthorized security testing. Misuse may result in legal claims, loss of employment, revocation of certifications, financial damages, and criminal charges. This project is not, under any circumstances, to be used for malicious or unauthorized activities, regardless of intent or outcome.
