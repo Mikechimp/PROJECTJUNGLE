@@ -8,7 +8,7 @@ An authorized vulnerability scanner for ethical cybersecurity operations. Combin
 
 ## Features
 
-- **Port Scanning** — Concurrent TCP port scanning using thread pools. Supports individual ports, comma-separated lists, and ranges (e.g. `80,443` or `1-65535`). Configurable thread count for performance tuning.
+- **Advanced Port Scanning** — Multi-probe TCP scanner with adaptive timing, statistical state inference, and confidence scoring. Supports individual ports, comma-separated lists, and ranges (e.g. `80,443` or `1-65535`). Differentiates open, closed, and filtered port states using timing heuristics. Configurable thread count, timing profiles (T0-T5), and scan strategies.
 - **Service Detection** — Banner grabbing and fingerprinting for 21+ common services (HTTP, SSH, FTP, SMTP, DNS, MySQL, PostgreSQL, Redis, MongoDB, and more). Extracts product names and version numbers from banners.
 - **Network Vulnerability Checks** — Detects insecure services (Telnet, FTP), exposed databases, deprecated SSL/TLS protocols, weak ciphers, and matches against 14 known CVEs including OpenSSH regreSSHion (CVE-2024-6387), Apache path traversal (CVE-2021-41773), nginx HTTP/2 Rapid Reset (CVE-2023-44487), and others.
 - **Web Vulnerability Checks** — Analyzes HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection), detects dangerous HTTP methods (PUT, DELETE, TRACE), discovers exposed paths (`.env`, `.git/HEAD`, `phpinfo.php`, `/admin`, `wp-login.php`, `server-status`), and flags information disclosure via Server/X-Powered-By headers.
@@ -66,6 +66,11 @@ python -m jungle <target> [options]
 | `-v, --verbose` | Enable verbose output | off |
 | `--no-banner` | Skip service banner grabbing | off |
 | `-y, --yes` | Skip authorization prompt (pre-authorized) | off |
+| `-T, --timing` | Timing profile `0`-`5` (see below) | `3` |
+| `--probes` | Number of probes per port for statistical consensus | `1` |
+| `--strategy` | Port ordering: `sequential`, `random`, `frequency`, `entropy` | `sequential` |
+| `--max-rate` | Maximum probes per second | unlimited |
+| `--min-rate` | Minimum probes per second floor | none |
 | `--version` | Show version and exit | |
 | `-h, --help` | Show help and exit | |
 
@@ -100,6 +105,107 @@ jungle 172.16.0.5 -v --timeout 5.0
 jungle authorized-target.com -y -o results.json --format json
 ```
 
+### Advanced Scanning
+
+The scanner gives you full mathematical control over how probes are sent, timed, and analyzed.
+
+#### Timing Profiles (`-T`)
+
+| Profile | Name | Behavior |
+|---|---|---|
+| `T0` | Paranoid | Serial, 5-minute inter-probe delay with jitter. Max stealth. |
+| `T1` | Sneaky | Serial, 15s inter-probe delay with jitter. Low and slow. |
+| `T2` | Polite | Serial, 400ms inter-probe delay. Minimal network impact. |
+| `T3` | Normal | Parallelized, no artificial delay. Default. |
+| `T4` | Aggressive | Parallelized, tight adaptive timeouts, high concurrency. |
+| `T5` | Insane | Parallelized, minimal timeouts, maximum throughput. |
+
+Each profile configures an entire set of underlying parameters: inter-probe delay, jitter distribution, initial/min/max timeouts, congestion thresholds, and backoff factors. You can further override individual parameters with `--max-rate`, `--timeout`, `--threads`, etc.
+
+#### Adaptive Timeout (EWMA)
+
+The scanner uses the Jacobson/Karels algorithm (RFC 6298) to adapt its timeout to observed network conditions in real time:
+
+```
+SRTT   = (1 - alpha) * SRTT   + alpha * sample_rtt
+RTTVAR = (1 - beta)  * RTTVAR + beta  * |sample_rtt - SRTT|
+RTO    = SRTT + K * RTTVAR
+```
+
+With defaults `alpha=0.125`, `beta=0.25`, `K=4.0`. As the scan progresses, the timeout converges to match the actual network latency — tightening on fast networks, widening on slow or lossy ones.
+
+#### Multi-Probe Consensus (`--probes`)
+
+Send N probes to each port and determine state by majority vote:
+
+```bash
+# 3 probes per port — state is determined by consensus
+jungle 192.168.1.1 --probes 3
+
+# 5 probes for high-confidence assessment
+jungle 10.0.0.50 --probes 5 -v
+```
+
+Confidence is computed as `(agreeing_probes / total_probes)`, with a boost for open responses (even a single SYN-ACK among timeouts is a strong signal). In verbose mode, confidence is displayed per port.
+
+#### Port Ordering Strategies (`--strategy`)
+
+| Strategy | Description |
+|---|---|
+| `sequential` | Ascending port order (default). |
+| `random` | Shuffled order to avoid sequential-scan detection by IDS/IPS. |
+| `frequency` | High-probability ports first, based on empirical internet survey data. Useful for faster initial results and early RTT calibration. |
+| `entropy` | Stride-based distribution that maximizes distance between consecutive probes. Probes hit distant parts of the port range on each step. |
+
+```bash
+# Scan high-probability ports first
+jungle target.local --strategy frequency
+
+# Randomized ordering for IDS evasion
+jungle 10.0.0.1 --strategy random -T1
+
+# Entropy-distributed for representative early sampling
+jungle 192.168.1.1 --strategy entropy -p 1-65535
+```
+
+#### Rate Control (`--max-rate`, `--min-rate`)
+
+Control probe throughput with a token bucket rate limiter:
+
+```bash
+# Cap at 100 probes/sec
+jungle 10.0.0.50 --max-rate 100
+
+# Aggressive scan but capped
+jungle target.local -T4 --max-rate 500
+```
+
+#### Port State Differentiation
+
+Instead of just open/closed, the scanner distinguishes three states using timing heuristics:
+
+- **open** — TCP handshake completed (SYN-ACK received)
+- **closed** — Connection actively refused (RST received, fast response)
+- **filtered** — No response within timeout (silently dropped by firewall)
+
+The distinction between closed and filtered is made by comparing the response time against the timeout — an instant RST is closed, while a timeout-length wait is filtered.
+
+#### Example: Full Advanced Scan
+
+```bash
+jungle 192.168.1.1 \
+  -p 1-65535 \
+  -T4 \
+  --strategy frequency \
+  --probes 3 \
+  --max-rate 1000 \
+  -t 200 \
+  -v \
+  -o full_scan.json --format json
+```
+
+This scans all 65535 ports with aggressive timing, frequency-weighted ordering, 3 probes per port for consensus, capped at 1000 probes/sec, using 200 threads, with verbose output and JSON export.
+
 ### Scan Phases
 
 A full scan runs four phases in order:
@@ -123,14 +229,16 @@ jungle/
   cli.py                # CLI argument parsing and scan orchestration
   config.py             # ScanConfig dataclass
   scanner/
-    port_scanner.py     # TCP port scanning with concurrency
+    port_scanner.py     # Advanced TCP scanner with stats and adaptive timing
+    timing.py           # Timing engine: EWMA, rate limiter, jitter, profiles
+    strategies.py       # Port ordering strategies (sequential/random/freq/entropy)
     service_detector.py # Banner grabbing and service fingerprinting
     network.py          # Network-level vulnerability checks
     web.py              # Web vulnerability checks
   report/
     generator.py        # Text, JSON, and HTML report generation
   utils/
-    network.py          # Low-level network helpers (TCP, SSL, banners)
+    network.py          # Low-level network helpers (TCP probe, SSL, banners)
     validators.py       # IP address and hostname validation
   vuln/
     checks.py           # Known vulnerability database (14 CVEs)

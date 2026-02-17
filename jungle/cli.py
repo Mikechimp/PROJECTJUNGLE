@@ -91,6 +91,47 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip interactive authorization prompt (for scripted use with pre-authorized targets)",
     )
 
+    # Advanced scanning options
+    scan_group = parser.add_argument_group("advanced scanning")
+    scan_group.add_argument(
+        "-T", "--timing",
+        type=int,
+        choices=[0, 1, 2, 3, 4, 5],
+        default=3,
+        help=(
+            "Timing profile: T0=paranoid, T1=sneaky, T2=polite, "
+            "T3=normal (default), T4=aggressive, T5=insane"
+        ),
+    )
+    scan_group.add_argument(
+        "--probes",
+        type=int,
+        default=1,
+        help="Number of probes per port for statistical consensus (default: 1)",
+    )
+    scan_group.add_argument(
+        "--strategy",
+        choices=["sequential", "random", "frequency", "entropy"],
+        default="sequential",
+        help=(
+            "Port ordering strategy: sequential (default), random, "
+            "frequency (high-probability ports first), "
+            "entropy (maximally distributed ordering)"
+        ),
+    )
+    scan_group.add_argument(
+        "--max-rate",
+        type=float,
+        default=0.0,
+        help="Maximum probes per second (default: unlimited)",
+    )
+    scan_group.add_argument(
+        "--min-rate",
+        type=float,
+        default=0.0,
+        help="Minimum probes per second floor (default: none)",
+    )
+
     return parser
 
 
@@ -132,6 +173,11 @@ def main():
         timeout=args.timeout,
         verbose=args.verbose,
         grab_banners=not args.no_banner,
+        timing_profile=args.timing,
+        probes_per_port=args.probes,
+        scan_strategy=args.strategy,
+        max_rate=args.max_rate,
+        min_rate=args.min_rate,
     )
 
     results = {
@@ -153,11 +199,35 @@ def main():
         port_scanner = PortScanner(config)
         open_ports = port_scanner.scan()
         results["open_ports"] = open_ports
+        scan_stats = port_scanner.get_scan_statistics()
+        results["scan_statistics"] = scan_stats
+
         print(f"[+] Found {len(open_ports)} open port(s)")
+        if scan_stats.get("filtered", 0) > 0:
+            print(f"    ({scan_stats['filtered']} filtered)")
 
         if config.verbose:
             for port_info in open_ports:
-                print(f"    {port_info['port']}/tcp  open")
+                state = port_info.get("state", "open")
+                conf = port_info.get("confidence", 1.0)
+                rtt_info = port_info.get("rtt", {})
+                rtt_str = ""
+                if rtt_info:
+                    rtt_str = f"  rtt={rtt_info['mean_ms']:.1f}ms"
+                print(f"    {port_info['port']}/tcp  {state}  "
+                      f"conf={conf:.0%}{rtt_str}")
+
+            # Print aggregate stats
+            if scan_stats.get("aggregate_rtt_mean_ms") is not None:
+                print(f"\n    Aggregate RTT: "
+                      f"mean={scan_stats['aggregate_rtt_mean_ms']:.1f}ms")
+                if scan_stats.get("aggregate_rtt_stddev_ms") is not None:
+                    print(f"                   "
+                          f"stddev={scan_stats['aggregate_rtt_stddev_ms']:.1f}ms")
+            if scan_stats.get("adaptive_timeout_final_ms") is not None:
+                print(f"    Adaptive timeout converged to: "
+                      f"{scan_stats['adaptive_timeout_final_ms']:.1f}ms")
+            print(f"    Total probes sent: {scan_stats['total_probes_sent']}")
     else:
         print("\n[*] Phase 1: Port scanning skipped")
 

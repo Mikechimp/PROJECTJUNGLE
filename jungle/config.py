@@ -14,6 +14,13 @@ class ScanConfig:
     verbose: bool = False
     grab_banners: bool = True
 
+    # Advanced scanning parameters
+    timing_profile: int = 3        # 0-5 (T0 Paranoid ... T5 Insane)
+    probes_per_port: int = 1       # Number of probes per port for consensus
+    scan_strategy: str = "sequential"  # sequential, random, frequency, entropy
+    max_rate: float = 0.0          # Max probes/sec (0 = unlimited)
+    min_rate: float = 0.0          # Min probes/sec (0 = no floor)
+
     def parse_ports(self) -> List[int]:
         """Parse port specification into a list of port numbers."""
         ports = []

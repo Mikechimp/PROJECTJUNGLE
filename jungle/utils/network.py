@@ -1,8 +1,29 @@
 """Network utility functions."""
 
+import errno
 import socket
 import ssl
+import time
+from dataclasses import dataclass
 from typing import Optional, Dict, Any
+
+
+@dataclass
+class ProbeResult:
+    """Result of a single TCP probe with full timing and state data.
+
+    Attributes:
+        port: The port that was probed.
+        state: One of "open", "closed", "filtered".
+        rtt: Round-trip time in seconds, or None if timed out.
+        error_code: The errno from connect_ex, or None.
+        timestamp: Monotonic timestamp when the probe completed.
+    """
+    port: int
+    state: str           # "open", "closed", "filtered"
+    rtt: Optional[float] = None
+    error_code: Optional[int] = None
+    timestamp: float = 0.0
 
 
 def tcp_connect(host: str, port: int, timeout: float = 2.0) -> bool:
@@ -14,6 +35,62 @@ def tcp_connect(host: str, port: int, timeout: float = 2.0) -> bool:
             return result == 0
     except (socket.timeout, OSError):
         return False
+
+
+def tcp_probe(host: str, port: int, timeout: float = 2.0) -> ProbeResult:
+    """Probe a single port and return detailed state and timing data.
+
+    Differentiates between three port states:
+    - open:     TCP handshake completed (SYN-ACK received, errno 0)
+    - closed:   Connection actively refused (RST received, ECONNREFUSED)
+    - filtered: No response within timeout (packet silently dropped by firewall)
+
+    The RTT is measured as the wall-clock time for connect_ex to return.
+    For open/closed ports this reflects actual network round-trip time.
+    For filtered ports, RTT is None since the timeout is artificial.
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(timeout)
+            t0 = time.monotonic()
+            result = sock.connect_ex((host, port))
+            t1 = time.monotonic()
+            rtt = t1 - t0
+
+            if result == 0:
+                return ProbeResult(
+                    port=port, state="open", rtt=rtt,
+                    error_code=result, timestamp=t1,
+                )
+            elif result == errno.ECONNREFUSED:
+                return ProbeResult(
+                    port=port, state="closed", rtt=rtt,
+                    error_code=result, timestamp=t1,
+                )
+            else:
+                # Other errors: ETIMEDOUT, EHOSTUNREACH, ENETUNREACH, etc.
+                # If RTT is close to timeout, treat as filtered
+                if rtt >= timeout * 0.9:
+                    return ProbeResult(
+                        port=port, state="filtered",
+                        error_code=result, timestamp=t1,
+                    )
+                else:
+                    return ProbeResult(
+                        port=port, state="closed", rtt=rtt,
+                        error_code=result, timestamp=t1,
+                    )
+    except socket.timeout:
+        return ProbeResult(
+            port=port, state="filtered",
+            timestamp=time.monotonic(),
+        )
+    except OSError as e:
+        return ProbeResult(
+            port=port, state="filtered",
+            error_code=getattr(e, 'errno', None),
+            timestamp=time.monotonic(),
+        )
 
 
 def grab_banner(host: str, port: int, timeout: float = 2.0) -> Optional[str]:
