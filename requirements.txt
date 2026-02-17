@@ -1,0 +1,7 @@
+# PROJECTJUNGLE has no external dependencies.
+# It uses only Python standard library modules:
+#   socket, ssl, concurrent.futures, argparse, json, re, ipaddress, urllib
+#
+# Optional dependencies for development/testing:
+# pytest>=7.0
+# pytest-cov>=4.0
