@@ -1,4 +1,4 @@
-"""Entry point for running jungle as a module: python -m jungle"""
+"""Entry point for running PROJECTJUNGLE as a module."""
 
 from jungle.cli import main
 

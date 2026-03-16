@@ -1,225 +1,133 @@
-"""Command-line interface for PROJECTJUNGLE vulnerability scanner."""
+"""Command-line interface for PROJECTJUNGLE.
+
+Generate metal backing tracks from the terminal and export as MIDI files
+for use in FL Studio or any DAW.
+"""
 
 import argparse
 import sys
-import json
-import os
-from datetime import datetime
 
 from jungle import __version__
-from jungle.auth import require_authorization
-from jungle.config import ScanConfig
-from jungle.scanner.port_scanner import PortScanner
-from jungle.scanner.service_detector import ServiceDetector
-from jungle.scanner.network import NetworkVulnScanner
-from jungle.scanner.web import WebVulnScanner
-from jungle.report.generator import ReportGenerator
-from jungle.utils.validators import validate_target
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="jungle",
-        description=(
-            "PROJECTJUNGLE - Authorized Vulnerability Scanner\n\n"
-            "WARNING: Only use against systems you have explicit "
-            "written authorization to test."
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-
-    parser.add_argument(
-        "target",
-        help="Target host (IP address or hostname). Must be authorized.",
-    )
-    parser.add_argument(
-        "-p", "--ports",
-        default="1-1024",
-        help="Port range to scan (default: 1-1024). Example: 80,443 or 1-65535",
-    )
-    parser.add_argument(
-        "-t", "--threads",
-        type=int,
-        default=50,
-        help="Number of concurrent threads (default: 50)",
-    )
-    parser.add_argument(
-        "--timeout",
-        type=float,
-        default=2.0,
-        help="Connection timeout in seconds (default: 2.0)",
-    )
-    parser.add_argument(
-        "--skip-ports",
-        action="store_true",
-        help="Skip port scanning (use with --ports to specify known open ports)",
-    )
-    parser.add_argument(
-        "--web-only",
-        action="store_true",
-        help="Only run web vulnerability checks",
-    )
-    parser.add_argument(
-        "--network-only",
-        action="store_true",
-        help="Only run network vulnerability checks",
-    )
-    parser.add_argument(
-        "-o", "--output",
-        help="Output file path for the report",
-    )
-    parser.add_argument(
-        "--format",
-        choices=["json", "text", "html"],
-        default="text",
-        help="Report format (default: text)",
-    )
-    parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Enable verbose output",
-    )
-    parser.add_argument(
-        "--no-banner",
-        action="store_true",
-        help="Skip service banner grabbing",
-    )
-    parser.add_argument(
-        "-y", "--yes",
-        action="store_true",
-        help="Skip interactive authorization prompt (for scripted use with pre-authorized targets)",
-    )
-
-    return parser
-
-
-def print_banner():
-    banner = r"""
-     ██╗██╗   ██╗███╗   ██╗ ██████╗ ██╗     ███████╗
-     ██║██║   ██║████╗  ██║██╔════╝ ██║     ██╔════╝
-     ██║██║   ██║██╔██╗ ██║██║  ███╗██║     █████╗
-██   ██║██║   ██║██║╚██╗██║██║   ██║██║     ██╔══╝
-╚█████╔╝╚██████╔╝██║ ╚████║╚██████╔╝███████╗███████╗
- ╚════╝  ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚══════╝
-    PROJECTJUNGLE v{version} - Authorized Vulnerability Scanner
-    """.format(version=__version__)
-    print(banner)
+from jungle.vibes.metal import list_vibes, get_vibe, VIBES
+from jungle.generators.session import generate_session
+from jungle.core.midi_export import export_midi
+from jungle.core.theory import TUNINGS, SCALES, note_name
 
 
 def main():
-    parser = build_parser()
-    args = parser.parse_args()
-
-    print_banner()
-
-    # Validate target
-    target_info = validate_target(args.target)
-    if not target_info:
-        print(f"[ERROR] Invalid target: {args.target}")
-        sys.exit(1)
-
-    # Authorization gate
-    if not require_authorization(args.target, skip_prompt=args.yes):
-        print("[ABORTED] Authorization not confirmed. Exiting.")
-        sys.exit(1)
-
-    config = ScanConfig(
-        target=target_info["resolved"],
-        hostname=target_info["hostname"],
-        ports=args.ports,
-        threads=args.threads,
-        timeout=args.timeout,
-        verbose=args.verbose,
-        grab_banners=not args.no_banner,
+    parser = argparse.ArgumentParser(
+        prog="jungle",
+        description="PROJECTJUNGLE — AI Metal Jam Buddy. "
+                    "Generates randomized metal backing tracks as MIDI files.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+EXAMPLES:
+  jungle                          Generate a random metal jam
+  jungle --vibe thrash            Thrash metal backing track
+  jungle --vibe doom --tempo 65   Slow doom at 65 BPM
+  jungle --vibe djent -b 64       64 bars of djent
+  jungle --list-vibes             Show all available vibes
+  jungle --vibe melodeath -o jam.mid   Export to specific file
+        """,
     )
 
-    results = {
-        "target": config.target,
-        "hostname": config.hostname,
-        "scan_start": datetime.utcnow().isoformat(),
-        "open_ports": [],
-        "services": [],
-        "network_vulns": [],
-        "web_vulns": [],
-    }
+    parser.add_argument("--version", action="version",
+                        version=f"PROJECTJUNGLE v{__version__}")
 
-    run_network = not args.web_only
-    run_web = not args.network_only
+    parser.add_argument("--vibe", "-v", default="random",
+                        help="Metal sub-genre vibe (default: random). "
+                             "Use --list-vibes to see options.")
 
-    # Phase 1: Port scanning
-    if run_network and not args.skip_ports:
-        print(f"\n[*] Phase 1: Scanning ports on {config.target} ({config.hostname})")
-        port_scanner = PortScanner(config)
-        open_ports = port_scanner.scan()
-        results["open_ports"] = open_ports
-        print(f"[+] Found {len(open_ports)} open port(s)")
+    parser.add_argument("--list-vibes", action="store_true",
+                        help="List all available metal vibes and exit.")
 
-        if config.verbose:
-            for port_info in open_ports:
-                print(f"    {port_info['port']}/tcp  open")
-    else:
-        print("\n[*] Phase 1: Port scanning skipped")
+    parser.add_argument("--tempo", "-t", type=int, default=None,
+                        help="Override tempo in BPM (default: auto from vibe).")
 
-    # Phase 2: Service detection
-    if run_network and results["open_ports"] and config.grab_banners:
-        print(f"\n[*] Phase 2: Detecting services on open ports")
-        service_detector = ServiceDetector(config)
-        services = service_detector.detect(results["open_ports"])
-        results["services"] = services
-        print(f"[+] Identified {len(services)} service(s)")
+    parser.add_argument("--bars", "-b", type=int, default=32,
+                        help="Number of bars to generate (default: 32).")
 
-        if config.verbose:
-            for svc in services:
-                print(f"    {svc['port']}/tcp  {svc['service']}  {svc.get('version', '')}")
-    else:
-        print("\n[*] Phase 2: Service detection skipped")
+    parser.add_argument("--tuning", default=None,
+                        choices=list(TUNINGS.keys()),
+                        help="Guitar tuning (default: auto from vibe).")
 
-    # Phase 3: Network vulnerability checks
-    if run_network and results["services"]:
-        print(f"\n[*] Phase 3: Running network vulnerability checks")
-        net_scanner = NetworkVulnScanner(config)
-        net_vulns = net_scanner.check(results["services"])
-        results["network_vulns"] = net_vulns
-        print(f"[+] Found {len(net_vulns)} network finding(s)")
-    else:
-        if run_network:
-            print("\n[*] Phase 3: No services to check for network vulnerabilities")
+    parser.add_argument("--scale", default=None,
+                        choices=list(SCALES.keys()),
+                        help="Scale to use (default: auto from vibe).")
 
-    # Phase 4: Web vulnerability checks
-    if run_web:
-        web_ports = [
-            p["port"] for p in results.get("services", [])
-            if p.get("service") in ("http", "https")
-        ]
-        # Default to checking 80/443 if no port scan was done
-        if not web_ports and (args.skip_ports or args.web_only):
-            web_ports = [80, 443]
+    parser.add_argument("--output", "-o", default=None,
+                        help="Output MIDI file path (default: jungle_jam.mid).")
 
-        if web_ports:
-            print(f"\n[*] Phase 4: Running web vulnerability checks on port(s) {web_ports}")
-            web_scanner = WebVulnScanner(config)
-            web_vulns = web_scanner.check(web_ports)
-            results["web_vulns"] = web_vulns
-            print(f"[+] Found {len(web_vulns)} web finding(s)")
-        else:
-            print("\n[*] Phase 4: No web services detected, skipping web checks")
+    parser.add_argument("--no-drums", action="store_true",
+                        help="Generate without drums (guitar + bass only).")
 
-    results["scan_end"] = datetime.utcnow().isoformat()
+    parser.add_argument("--no-bass", action="store_true",
+                        help="Generate without bass (guitar + drums only).")
 
-    # Generate report
-    total_findings = len(results["network_vulns"]) + len(results["web_vulns"])
-    print(f"\n{'='*60}")
-    print(f"[*] Scan complete. Total findings: {total_findings}")
+    parser.add_argument("--no-guitar", action="store_true",
+                        help="Generate without rhythm guitar (drums + bass only).")
 
-    report = ReportGenerator(results)
+    parser.add_argument("--info", action="store_true",
+                        help="Show session info without exporting.")
 
-    if args.output:
-        report.save(args.output, fmt=args.format)
-        print(f"[+] Report saved to {args.output}")
-    else:
-        print()
-        report.print_summary()
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Random seed for reproducible jams.")
+
+    args = parser.parse_args()
+
+    # List vibes
+    if args.list_vibes:
+        print("Available Metal Vibes:")
+        print("=" * 60)
+        for name, vibe in VIBES.items():
+            print(f"  {name:15s} {vibe.description}")
+            print(f"  {'':15s} Tempo: {vibe.tempo_range[0]}-{vibe.tempo_range[1]} BPM")
+            print()
+        return
+
+    # Set seed
+    if args.seed is not None:
+        import random
+        random.seed(args.seed)
+
+    # Generate
+    print(f"Generating metal jam...")
+    session = generate_session(
+        vibe_name=args.vibe,
+        bars=args.bars,
+        tempo=args.tempo,
+        tuning=args.tuning,
+        scale=args.scale,
+    )
+
+    # Remove tracks if requested
+    if args.no_drums and "drums" in session.tracks:
+        del session.tracks["drums"]
+    if args.no_bass and "bass" in session.tracks:
+        del session.tracks["bass"]
+    if args.no_guitar and "rhythm_guitar" in session.tracks:
+        del session.tracks["rhythm_guitar"]
+
+    # Show info
+    print()
+    print(session.summary())
+    print()
+
+    if args.info:
+        return
+
+    # Export
+    output = args.output or "jungle_jam.mid"
+    export_midi(session, output)
+    print(f"Exported to: {output}")
+    print()
+    print("Load this MIDI file into FL Studio:")
+    print("  1. Drag the .mid file into the FL Studio Playlist")
+    print("  2. Assign tracks to your instruments:")
+    print("     - Track 1 (drums)  -> FPC / Superior Drummer / EZDrummer")
+    print("     - Track 2 (bass)   -> your bass plugin")
+    print("     - Track 3 (guitar) -> your rhythm guitar plugin")
+    print("  3. Hit play and shred!")
 
 
 if __name__ == "__main__":

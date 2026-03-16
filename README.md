@@ -1,115 +1,112 @@
 # PROJECTJUNGLE
 
-An authorized vulnerability scanner for ethical cybersecurity operations. Combines multi-phase scanning with automated vulnerability detection and reporting — built entirely on the Python standard library with zero external dependencies.
+**AI Metal Jam Buddy for FL Studio** — generates randomized metal backing tracks (drums, bass, rhythm guitar) so you can jam, practice leads, and create. Built entirely on the Python standard library with zero external dependencies.
 
-> **This tool is strictly for use in authorized, lawful security testing environments.** See [Legal Considerations](#legal-considerations) below.
+Pick a metal vibe, hit generate, and shred.
 
 ---
 
 ## Features
 
-- **Port Scanning** — Concurrent TCP port scanning using thread pools. Supports individual ports, comma-separated lists, and ranges (e.g. `80,443` or `1-65535`). Configurable thread count for performance tuning.
-- **Service Detection** — Banner grabbing and fingerprinting for 21+ common services (HTTP, SSH, FTP, SMTP, DNS, MySQL, PostgreSQL, Redis, MongoDB, and more). Extracts product names and version numbers from banners.
-- **Network Vulnerability Checks** — Detects insecure services (Telnet, FTP), exposed databases, deprecated SSL/TLS protocols, weak ciphers, and matches against 14 known CVEs including OpenSSH regreSSHion (CVE-2024-6387), Apache path traversal (CVE-2021-41773), nginx HTTP/2 Rapid Reset (CVE-2023-44487), and others.
-- **Web Vulnerability Checks** — Analyzes HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection), detects dangerous HTTP methods (PUT, DELETE, TRACE), discovers exposed paths (`.env`, `.git/HEAD`, `phpinfo.php`, `/admin`, `wp-login.php`, `server-status`), and flags information disclosure via Server/X-Powered-By headers.
-- **Multi-Format Reporting** — Generate reports in plain text, JSON, or styled HTML. Findings are categorized by severity: CRITICAL, HIGH, MEDIUM, LOW, and INFO.
-- **Authorization Gate** — Built-in legal prompt requiring explicit confirmation before any scan begins. Supports a `-y` flag for pre-authorized scripted use.
-- **Zero Dependencies** — Uses only the Python standard library (`socket`, `ssl`, `concurrent.futures`, `urllib`, `json`, `argparse`, `ipaddress`).
+- **9 Metal Vibes** — Thrash, Doom, Progressive, Djent, Melodic Death, Death, Black, Groove, and Metalcore. Each vibe has curated tempos, scales, drum patterns, riff styles, and song structures.
+- **Drum Engine** — 9 pattern types including double bass 16ths, blast beats, breakdowns, thrash skank beats, djent syncopation, doom pound, and prog odd-time feels. Fills auto-insert at phrase boundaries.
+- **Riff Generator** — Power chord progressions, palm-mute chugging, tremolo picking, gallop rhythms, djent staccato, and breakdown sections. 10 metal chord progressions built in.
+- **Bass Generator** — Root-lock, octave pulse, 16th-note drive, melodic walking lines, and doom sustain styles. Locks with the rhythm guitar and kick drum.
+- **Music Theory Core** — Scales (phrygian, harmonic minor, locrian, diminished, etc.), power chords, drop tunings (D through 8-string), and metal-specific progressions.
+- **MIDI Export** — Generates standard MIDI files (Format 1) that load directly into FL Studio, Ableton, Reaper, or any DAW.
+- **FL Studio Integration** — Includes a MIDI controller script that runs inside FL Studio for real-time vibe switching and jam generation.
+- **Humanized Feel** — Timing and velocity humanization on every hit so it doesn't sound robotic.
+- **Zero Dependencies** — Pure Python standard library. No pip installs needed.
+- **Reproducible Jams** — Set a random seed to regenerate the exact same jam.
 
 ---
 
-## Installation
-
-Requires **Python 3.8+**.
+## Quick Start
 
 ```bash
-# Clone the repository
+# Clone and install
 git clone https://github.com/Mikechimp/PROJECTJUNGLE.git
 cd PROJECTJUNGLE
-
-# Install in development mode
 pip install -e .
 
-# Or install normally
-pip install .
+# Generate a random metal jam
+jungle
+
+# Pick a vibe
+jungle --vibe thrash
+jungle --vibe doom --tempo 60
+jungle --vibe djent --bars 64
+
+# See all vibes
+jungle --list-vibes
+
+# Export to a specific file
+jungle --vibe melodeath -o my_jam.mid
+
+# Reproducible jam (same seed = same output)
+jungle --vibe groove --seed 42 -o groove_jam.mid
 ```
 
 ---
 
-## Usage
+## Available Vibes
 
-After installation the `jungle` command is available:
+| Vibe | Style | Tempo | Think... |
+|------|-------|-------|----------|
+| `thrash` | Fast, aggressive, tight | 160-220 BPM | Slayer, Metallica, Megadeth |
+| `doom` | Slow, crushing, massive | 50-80 BPM | Black Sabbath, Electric Wizard, Sleep |
+| `progressive` | Complex, technical, dynamic | 100-180 BPM | Dream Theater, Tool, Opeth |
+| `djent` | Syncopated, polyrhythmic | 110-160 BPM | Meshuggah, Periphery, Animals As Leaders |
+| `melodeath` | Melodic + aggressive | 140-200 BPM | In Flames, At The Gates, Dark Tranquillity |
+| `death` | Brutal, fast, guttural | 160-240 BPM | Cannibal Corpse, Death, Morbid Angel |
+| `black` | Atmospheric, tremolo-heavy | 150-220 BPM | Mayhem, Burzum, Emperor |
+| `groove` | Mid-tempo, heavy groove | 100-140 BPM | Pantera, Lamb of God, Machine Head |
+| `metalcore` | Breakdowns + melody | 120-170 BPM | Killswitch Engage, Parkway Drive |
 
-```
-jungle <target> [options]
-```
+---
 
-You can also run it as a Python module:
-
-```
-python -m jungle <target> [options]
-```
-
-### Options
+## CLI Options
 
 | Flag | Description | Default |
-|---|---|---|
-| `target` | Target host — IP address or hostname | *(required)* |
-| `-p, --ports` | Ports to scan. Accepts ranges (`1-1024`) or lists (`80,443,8080`) | `1-1024` |
-| `-t, --threads` | Number of concurrent scanning threads | `50` |
-| `--timeout` | Connection timeout in seconds | `2.0` |
-| `--skip-ports` | Skip the port scanning phase | off |
-| `--web-only` | Only run web vulnerability checks | off |
-| `--network-only` | Only run network vulnerability checks | off |
-| `-o, --output` | Save report to file | *(none)* |
-| `--format` | Report format: `text`, `json`, or `html` | `text` |
-| `-v, --verbose` | Enable verbose output | off |
-| `--no-banner` | Skip service banner grabbing | off |
-| `-y, --yes` | Skip authorization prompt (pre-authorized) | off |
-| `--version` | Show version and exit | |
-| `-h, --help` | Show help and exit | |
+|------|-------------|---------|
+| `--vibe, -v` | Metal sub-genre | `random` |
+| `--tempo, -t` | BPM override | auto from vibe |
+| `--bars, -b` | Number of bars | `32` |
+| `--tuning` | Guitar tuning (drop_d, drop_c, etc.) | auto from vibe |
+| `--scale` | Scale override | auto from vibe |
+| `--output, -o` | Output .mid file path | `jungle_jam.mid` |
+| `--no-drums` | Skip drum track | off |
+| `--no-bass` | Skip bass track | off |
+| `--no-guitar` | Skip rhythm guitar track | off |
+| `--seed` | Random seed for reproducibility | none |
+| `--info` | Show session info without exporting | off |
+| `--list-vibes` | Show all vibes and exit | |
+| `--version` | Show version | |
 
-### Examples
+---
 
-```bash
-# Basic scan with default ports (1-1024)
-jungle 192.168.1.100
+## FL Studio Integration
 
-# Scan specific ports
-jungle example.com -p 80,443,8080
+### Method 1: MIDI File Import (Easiest)
+1. Run `jungle --vibe thrash -o jam.mid`
+2. Drag `jam.mid` into FL Studio's Playlist
+3. FL Studio will split it into separate tracks:
+   - **Track 1 (drums)** → assign to FPC, Superior Drummer, or EZDrummer
+   - **Track 2 (bass)** → assign to your bass plugin (Trilian, MODO Bass, etc.)
+   - **Track 3 (guitar)** → assign to your rhythm guitar plugin (Helix Native, Archetype, etc.)
+4. Hit play and solo over it
 
-# Full port range with increased threads
-jungle target.local -p 1-65535 -t 100
-
-# Web vulnerability checks only
-jungle 10.0.0.50 --web-only
-
-# Network checks only
-jungle 10.0.0.50 --network-only
-
-# Save results as JSON
-jungle 192.168.1.1 -o report.json --format json
-
-# Generate a styled HTML report
-jungle target.local -o report.html --format html
-
-# Verbose scan with longer timeout
-jungle 172.16.0.5 -v --timeout 5.0
-
-# Non-interactive mode for scripted pipelines
-jungle authorized-target.com -y -o results.json --format json
-```
-
-### Scan Phases
-
-A full scan runs four phases in order:
-
-1. **Port Scan** — Discovers open TCP ports on the target.
-2. **Service Detection** — Grabs banners and identifies running services/versions.
-3. **Network Checks** — Tests for insecure services, exposed databases, known CVEs, and SSL/TLS weaknesses.
-4. **Web Checks** — Examines HTTP headers, methods, exposed paths, and certificate validity.
-
-Use `--web-only`, `--network-only`, or `--skip-ports` to run only the phases you need.
+### Method 2: FL Studio Controller Script (Advanced)
+1. Copy `jungle/fl_studio/jungle_controller.py` to FL Studio's Hardware folder:
+   - **Windows:** `C:\Program Files\Image-Line\FL Studio\Settings\Hardware\`
+   - **macOS:** `/Applications/FL Studio.app/Contents/Resources/FL/Settings/Hardware/`
+2. Also copy the entire `jungle/` package to the same location (or install via pip)
+3. In FL Studio: Options → MIDI Settings → Controller type → select "PROJECTJUNGLE"
+4. Use MIDI CC controls to switch vibes and generate jams on-the-fly:
+   - **CC 20:** Vibe select
+   - **CC 21:** Tempo override
+   - **CC 22:** Intensity
+   - **CC 23:** Generate new jam
 
 ---
 
@@ -117,49 +114,36 @@ Use `--web-only`, `--network-only`, or `--skip-ports` to run only the phases you
 
 ```
 jungle/
-  __init__.py           # Package metadata and version
-  __main__.py           # Module entry point
-  auth.py               # Authorization verification gate
-  cli.py                # CLI argument parsing and scan orchestration
-  config.py             # ScanConfig dataclass
-  scanner/
-    port_scanner.py     # TCP port scanning with concurrency
-    service_detector.py # Banner grabbing and service fingerprinting
-    network.py          # Network-level vulnerability checks
-    web.py              # Web vulnerability checks
-  report/
-    generator.py        # Text, JSON, and HTML report generation
-  utils/
-    network.py          # Low-level network helpers (TCP, SSL, banners)
-    validators.py       # IP address and hostname validation
-  vuln/
-    checks.py           # Known vulnerability database (14 CVEs)
+  __init__.py               # Package metadata
+  __main__.py               # Module entry point
+  cli.py                    # CLI argument parsing and orchestration
+  core/
+    theory.py               # Scales, chords, progressions, tunings
+    rhythm.py               # Timing, subdivisions, humanization
+    midi_export.py          # MIDI file writer (zero dependencies)
+  generators/
+    drums.py                # Metal drum pattern generator
+    riffs.py                # Rhythm guitar riff generator
+    bass.py                 # Bass line generator
+    session.py              # Jam session orchestrator
+  vibes/
+    metal.py                # Metal sub-genre presets
+  fl_studio/
+    jungle_controller.py    # FL Studio MIDI controller script
 ```
 
 ---
 
-## Legal Considerations
+## How to Make Money With This
 
-**READ THIS SECTION IN ITS ENTIRETY BEFORE USING THIS SOFTWARE.**
+1. **Sell backing tracks** — Generate unique jams, record yourself soloing over them, sell on BeatStars, Bandcamp, or license for sync
+2. **YouTube/TikTok content** — "AI generated a random metal backing track and I soloed over it" is engaging content
+3. **Practice & improve** — Better skills = better recordings = more opportunities (session work, teaching, gigs)
+4. **Expand the tool** — Add more genres, build a GUI, sell it as an FL Studio plugin
+5. **Collaboration** — Use it as a songwriting tool to generate ideas you'd never think of
 
-### Note One — Legal Responsibility & Misuse
+---
 
-This software, including but not limited to Project JUNGLE and any future tools developed under this repository, is created strictly for use in authorized cybersecurity research, academic training, lawful penetration testing, and professional environments where explicit written consent has been granted for security assessments. Any use outside of these contexts is strictly prohibited. This includes but is not limited to scanning, probing, exploiting, or disrupting systems, services, networks, or applications without clear and verifiable authorization from the asset owner.
+## License
 
-Misusing this tool in any way — including scanning, probing, or interacting with systems you do not have explicit written authorization to access — is a serious federal offense. Violations of the Computer Fraud and Abuse Act (CFAA) and related cybercrime laws are classified as felonies. This is not a gray area. Unauthorized use will be treated as criminal hacking. You are subject to investigation by the Federal Bureau of Investigation (FBI), U.S. Secret Service, and other federal agencies tasked with cybersecurity enforcement.
-
-In the United States, misuse may fall under the Computer Fraud and Abuse Act (18 U.S. Code 1030), carrying penalties of up to 10 years imprisonment for a first offense and up to 20 years for repeat violations. Civil liabilities may exceed $100,000 depending on the damages caused. Other applicable laws include the Wiretap Act (18 U.S. Code 2511), the Stored Communications Act (18 U.S. Code 2701), and individual state-level computer crime laws. International users are subject to the laws and penalties of their respective jurisdictions, which may include criminal prosecution, fines, extradition, and imprisonment.
-
-By using, downloading, cloning, modifying, or distributing this software, you accept full responsibility for your actions. You acknowledge that misuse of this tool can result in criminal charges, civil lawsuits, job loss, certification revocation, professional sanctions, and permanent reputational damage. The author and contributors accept no liability or responsibility for how it is used. You use it at your own risk.
-
-### Note Two — Contributions & Development
-
-All contributions to this project are welcome only under strict professional and ethical standards. Code must be original, fully tested, and free from malicious or unintended behavior. Submissions introducing backdoors, insecure logic, or unauthorized third-party code will result in permanent bans from the project and may be reported to security, academic, or legal authorities if necessary. Every line of code will be subject to audit and rejection without warning if it fails to meet the quality and safety standards required.
-
-The maintainer retains full authority over the project's direction, structure, scope, and who is allowed to contribute. By submitting code, you acknowledge that you are transferring rights to your contribution to the project under the terms of its license, and you grant the maintainer the right to modify, reject, or remove your submission at any time.
-
-### Note Three — Distribution, Forking, and Enforcement
-
-This software may be publicly viewed, forked, or cloned, but redistribution must retain all original legal warnings, disclaimers, and use restrictions without exception. Any attempt to remove or modify legal terms, present the software as safe for unrestricted use, or mask its intended purpose will be treated as a direct violation of these terms.
-
-The author maintains full rights to enforce these terms across all public and private instances, including reporting unauthorized forks, issuing takedown notices, and taking appropriate action through GitHub's abuse system, DMCA protocols, or legal channels if necessary.
+See [LICENSE](LICENSE) for details.

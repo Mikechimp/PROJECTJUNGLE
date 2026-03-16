@@ -1,9 +1,9 @@
-"""
-PROJECTJUNGLE - Authorized Vulnerability Scanner
+"""PROJECTJUNGLE - AI Metal Jam Buddy for FL Studio.
 
-A modular vulnerability scanner for authorized security assessments.
-Use only against systems you have explicit written permission to test.
+Generates randomized metal backing tracks (drums, bass, rhythm guitar)
+so you can jam, practice, and create. Integrates with FL Studio via
+MIDI controller scripting.
 """
 
 __version__ = "0.1.0"
-__author__ = "PROJECTJUNGLE"
+__author__ = "Mikechimp"
