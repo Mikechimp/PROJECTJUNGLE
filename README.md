@@ -23,12 +23,34 @@ Pick a metal vibe, hit generate, and shred.
 
 ## Quick Start
 
+### GUI App (Recommended)
+
 ```bash
 # Clone and install
 git clone https://github.com/Mikechimp/PROJECTJUNGLE.git
 cd PROJECTJUNGLE
 pip install -e .
 
+# Launch the GUI
+python jungle_gui.py
+# or
+jungle-gui
+```
+
+The GUI gives you a visual interface with vibe selection, tempo/tuning controls, and one-click MIDI export.
+
+### Build Standalone .exe (For Distribution)
+
+```bash
+pip install pyinstaller
+python build_exe.py
+```
+
+This creates a single `PROJECTJUNGLE.exe` (or binary on Mac/Linux) in the `dist/` folder that anyone can run — no Python required.
+
+### CLI (Command Line)
+
+```bash
 # Generate a random metal jam
 jungle
 
@@ -113,23 +135,27 @@ jungle --vibe groove --seed 42 -o groove_jam.mid
 ## Project Structure
 
 ```
+jungle_gui.py                 # Launch the GUI app (double-click or run)
+build_exe.py                  # Build standalone .exe with PyInstaller
 jungle/
-  __init__.py               # Package metadata
-  __main__.py               # Module entry point
-  cli.py                    # CLI argument parsing and orchestration
+  __init__.py                 # Package metadata
+  __main__.py                 # Module entry point
+  cli.py                      # CLI argument parsing and orchestration
+  gui/
+    app.py                    # Desktop GUI application (tkinter)
   core/
-    theory.py               # Scales, chords, progressions, tunings
-    rhythm.py               # Timing, subdivisions, humanization
-    midi_export.py          # MIDI file writer (zero dependencies)
+    theory.py                 # Scales, chords, progressions, tunings
+    rhythm.py                 # Timing, subdivisions, humanization
+    midi_export.py            # MIDI file writer (zero dependencies)
   generators/
-    drums.py                # Metal drum pattern generator
-    riffs.py                # Rhythm guitar riff generator
-    bass.py                 # Bass line generator
-    session.py              # Jam session orchestrator
+    drums.py                  # Metal drum pattern generator
+    riffs.py                  # Rhythm guitar riff generator
+    bass.py                   # Bass line generator
+    session.py                # Jam session orchestrator
   vibes/
-    metal.py                # Metal sub-genre presets
+    metal.py                  # Metal sub-genre presets
   fl_studio/
-    jungle_controller.py    # FL Studio MIDI controller script
+    jungle_controller.py      # FL Studio MIDI controller script
 ```
 
 ---

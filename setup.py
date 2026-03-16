@@ -14,6 +14,9 @@ setup(
         "console_scripts": [
             "jungle=jungle.cli:main",
         ],
+        "gui_scripts": [
+            "jungle-gui=jungle.gui.app:launch",
+        ],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

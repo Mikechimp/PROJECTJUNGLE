@@ -1,9 +1,25 @@
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
 dist/
 build/
-.eggs/
 *.egg
+.eggs/
 .venv/
 venv/
+
+# PyInstaller
+*.spec
+
+# MIDI output
+*.mid
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
